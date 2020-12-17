@@ -104,7 +104,7 @@ EOF
 
 **Run workload binary with qall.sql:**
 
-Monitor the workload from the DB Console to see QPS and CPU actvity.  Additionally, run the `SHOW RANGES` statement to see the number of ranges for the `hotsingle` table.  After you are done analyzing `^C` to escape and get a summary of the workload.
+Monitor the workload from the DB Console to see QPS and CPU actvity.  Additionally, run the `SHOW RANGES` statement to see the number of ranges for the `hotsingle` table.  After you are done analyzing you can use `^C` to escape.  For this test, I will simply let it run and adjust parameters *realtime* to improve performance.
 
 ```bash
 workload run querybench --db test --display-every 5s \
@@ -144,7 +144,7 @@ _elapsed___errors_____ops(total)___ops/sec(cum)__avg(ms)__p50(ms)__p95(ms)__p99(
    31.6s        0          63049         1996.1      3.7      2.2     15.2     25.2     54.5
 ```
 
-
+While the workload is running, show the ranges for the table:
 
 ```sql
 root@:26257/test> SHOW RANGES FROM TABLE hotsingle;
@@ -171,7 +171,7 @@ SET CLUSTER SETTING kv.range_split.load_qps_threshold = 200; -- default 2500
 ```
 
 
-**Monitor Ranges:**
+**Monitor Range Split Activity:**
 
 ```sql
 root@:26257/test> SHOW RANGES FROM TABLE hotsingle;

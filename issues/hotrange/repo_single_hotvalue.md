@@ -13,9 +13,7 @@ select /*q1 follower */ count(*), concat(s1,s2,s3,s4,s5) from as of system time 
 EOF
 ```
 
-**Run workload binary with qall.sql:**
-
-Monitor the workload from the DB Console to see QPS and CPU actvity.
+Monitor the workload from the DB Console to see QPS and CPU actvity as you run the following tests.
 
 **Run without follower reads:**
 ```bash
@@ -45,8 +43,6 @@ SHOW ZONE CONFIGURATION FOR TABLE hotsingle;
                 |     constraints = '[]',
                 |     lease_preferences = '[]'
 ```
-So, just simply using `as of system time follower_read_timestamp()` you will be able to increase the CPU resoures by 3x.  If you wish to spread this futher, you can increase the `num_replicas` by altering the table:
-
 
 **Adjust ZONE configuration to have 5 replias:**
 ```sql
@@ -75,5 +71,5 @@ workload run querybench --db test --display-every 5s \
 ![](singlevalue_follower_cpu.png)
 ![](singlevalue_follower_qps.png)
 
-Notice how CPU and QPS scales up to utilize all resource on the cluster.  This example you see some back-off with the 5 replica test.  It was hitting the cluster hard and the system needed CPU to keep concensus.
+Notice how CPU and QPS scales up to utilize all resource on the cluster.
 
