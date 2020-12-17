@@ -1,2 +1,1 @@
-# cockroachdb_troubleshooting
-Cockroach Database Troubleshooting
+crdb_troubleshooting.md
