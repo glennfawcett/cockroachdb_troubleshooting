@@ -42,11 +42,11 @@ Finally, if the above methods do not show the range in question, you can use the
 
 
 ## Treatment
-A small single range table can become hot for many reasons.  If other microservices are **pooling** data in the table or this serves as a **queue** table, then it can be a resource bottleneck.  To resolve, we would like to split the data across multiple ranges.
+A small single range table can become hot for many reasons.  Microservices **pooling** data, **dashboards**, **queue** tables are some of the most common observed bottle-necks.  To resolve, we would like to split data access across multiple ranges.
 
 ### Option #1 -- Adjust Auto Splitting
 
-To disperse data access, we need to read from multiple replicas and/or split the ranges.  CockroachDB can dynamically split ranges by configuring the threshold for splits.
+To disperse data access, we need to read from multiple replicas and/or split the ranges.  CockroachDB can dynamically split ranges by configuring the split threshold.
 
 **Adjust Auto Splitting:**
 
@@ -124,4 +124,4 @@ SELECT replicas FROM [SHOW RANGES FROM TABLE hotsingle];
 Notice how CPU and QPS scales up to utilize all resource on the cluster.  This example you see some back-off with the 5 replica test.  It was hitting the cluster hard and the system needed CPU to keep concensus.
 
 #### Reproduce "single value stress"
-A full reproduction of this topic can be run using the instructions in [repo_single_hotvalue.md](repo_single_hotvalue.md).  It uses the same configuration as the other hotrange, but runs only **one** query from all threads.
+A full reproduction of results can be run using the instructions in [repo_single_hotvalue.md](repo_single_hotvalue.md).  It uses the same configuration as the other hotrange, but runs only **one** query from all threads.
