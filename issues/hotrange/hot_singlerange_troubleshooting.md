@@ -38,7 +38,7 @@ The symptoms can be observed via the DB console or via metrics externally.  Befo
     ----------------+------------+-------------
     test            | hotsingle  |
     ```
-Finally, if the above methods do not show the range in question, you can use the [hottest_ranges3.py]() tool to extract data from the `http://hostname:25258/_status/raft` endpoint and lookup the hottest ranges ordered by the highest number of QueryPerSecond.
+Finally, if the above methods do not show the range in question, you can use the [hottest_ranges3.py](https://github.com/glennfawcett/cockroachdb_tools/tree/main/hottest_ranges) tool to extract data from the `http://hostname:25258/_status/raft` endpoint and lookup the hottest ranges ordered by the highest number of QueryPerSecond.
 
 
 ## Treatment
