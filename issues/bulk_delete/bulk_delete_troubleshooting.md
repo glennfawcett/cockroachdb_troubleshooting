@@ -12,10 +12,7 @@ Your bulk `DELETE` statements can fail for multiple reasons.
 These failures can be observed via the CLI prompt and the `crdb.log` files.
 
 ## Treatment(s)
-The docs are pretty good with some examples written in Python.
-* [https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html](https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html)
-
-For this blog entry, I have included simple examples of how to do this with via the CLI.
+The CockroachDB [docs](https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html) do a good of explaining bulk `DELETE` with some examples written in Python.  For this blog entry, I have included simple examples via the CLI and show how to bulk delete in parallel as well.
 
 ### Simple Delete script
 
