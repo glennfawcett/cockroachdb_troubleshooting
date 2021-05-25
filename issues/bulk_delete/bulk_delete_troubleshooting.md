@@ -36,7 +36,7 @@ done
 ```
 
 ### Simple Delete with Accounting
-Building on the previous example, you can use a CTE with the `RETURNING` clause to `INSERT` data into a table for tracking.  This allows you to monitor progress and inserts the count for each `DELETE`'s for that batch statement into `mytable_cnt`.
+Building on the previous example, you can use a CTE with the `RETURNING` clause to `INSERT` data into a table for tracking.  This allows you to monitor progress by tracking the batch delete size and timing in the `mytable_cnt` table.
 
 ```bash
 cockroach sql --insecure --format csv --execute """
@@ -76,7 +76,7 @@ FROM mytable_cnt;
 
 I have created the [delete_batch_with_accounting.sh](delete_batch_with_accounting.sh) script in my troubleshooting repository so you can experiment with this technique.
 
-### Multi Treaded Delete on Timestamp
+### Multi-Treaded Delete /w HASH INDEX
 To delete timeseries data in parallel, a `HASH` index is your best bet.  This example has the `created_at` column which contains the timestamp of when the data was inserted.  This example has a `HASH` index `WITH BUCKET_COUNT=9` to match the number of nodes in the cluster.
 
 ```sql
