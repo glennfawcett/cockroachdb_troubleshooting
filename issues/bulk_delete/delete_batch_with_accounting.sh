@@ -1,8 +1,10 @@
-cockroach sql --insecure --execute "create table if not exists mytable (id int primary key)"
+cockroach sql --insecure --execute "drop table mytable"
+cockroach sql --insecure --execute "create table mytable (id int primary key)"
 cockroach sql --insecure --execute "insert into mytable select * from generate_series(1,10000)"
 cockroach sql --insecure --execute "select count(*) from mytable"
 
-cockroach sql --insecure --execute "create table if not exists mytable_cnt (cnt int, ts timestamp default now())"
+cockroach sql --insecure --execute "drop table mytable_cnt"
+cockroach sql --insecure --execute "create table mytable_cnt (cnt int, ts timestamp default now())"
 
 
 cockroach sql --insecure --format csv --execute """
