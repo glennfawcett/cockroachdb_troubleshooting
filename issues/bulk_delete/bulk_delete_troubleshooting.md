@@ -12,14 +12,14 @@ Your bulk `DELETE` statements can fail for multiple reasons.
 These failures can be observed via the CLI prompt and the `crdb.log` files.
 
 ## Treatment
-The docs are pretty good with some examples of how this can be done with some examples written in Python.
+The docs are pretty good with some examples written in Python.
 * [https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html](https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html)
 
-For this blog entry, there are some simple examples of how to do this by a simple shell script.
+For this blog entry, I have included simple examples of how to do this with via the CLI.
 
 ### Simple Delete script
 
-For an simple script that can be run with just from the shell via the cockroach CLI tool, consider the following:
+This simple script runs via the shell and accesses CockroachDB with the `cockroach` binary.  Data is removed in small batches using the `LIMIT` operation.  The `--watch` option is used with the `cockroach` CLI to run the same statement over and over again at the desired frequency.  The `bash` script loop reads the returned data and exits once their are no more rows to be deleted.
 
 ```bash
 cockroach sql --insecure --format csv --execute """
@@ -36,7 +36,7 @@ done
 ```
 
 ### Simple Delete with Accounting
-If you want to better monitor progress, consider the following example which uses the returning clause with a CTE to track the progress of deletes from `mytable` into an account table `mytable_cnt`.
+Building on the previous example, you can use a CTE with the `RETURNING` clause to `INSERT` data into a table for tracking.  This allows you to monitor progress and inserts the count for each `DELETE`'s for that batch statement into `mytable_cnt`.
 
 ```bash
 cockroach sql --insecure --format csv --execute """
@@ -63,8 +63,9 @@ done
 
 **Determine Delete's per second after running:**
 
-```sql
+The `mytable_cnt` table also inserts the `TIMESTAMP` values into the `ts` column to keep track of the entries.  This can be very useful to track the delete progress like so:
 
+```sql
 SELECT (sum(cnt)/EXTRACT(EPOCH from max(ts)-min(ts))::decimal(8,2))::decimal(8,2) as delete_per_second 
 FROM mytable_cnt;
 
@@ -73,11 +74,10 @@ FROM mytable_cnt;
             1587.30
 ```
 
-This example can be reproduced with via the [delete_batch_with_accounting.sh](delete_batch_with_accounting.sh) script in my troubleshooting repository.
-
+I have created the [delete_batch_with_accounting.sh](delete_batch_with_accounting.sh) script in my troubleshooting repository so you can experiment with this technique.
 
 ### Multi Treaded Delete on Timestamp
-To delete timeseries data in parallel, a `HASH` index is your best bet.  This example has a table with the `created_at` column which contains the timestamp used to show the age of data.  This example has a cluster with 9 nodes, so a `HASH INDEX` with 9 `BUCKETS` was created to match.
+To delete timeseries data in parallel, a `HASH` index is your best bet.  This example has the `created_at` column which contains the timestamp of when the data was inserted.  This example has a `HASH` index `WITH BUCKET_COUNT=9` to match the number of nodes in the cluster.
 
 ```sql
 CREATE TABLE mybigtable (
@@ -93,7 +93,6 @@ SET experimental_enable_hash_sharded_indexes=true;
 CREATE INDEX idx_mybigtable_created_at 
 ON mybigtable(created_at)
 USING HASH WITH BUCKET_COUNT = 9;
-
 ```
 
 When you run a `SHOW CREATE mybigtable`, notice there is a hidden column `crdb_internal_created_at_shard_9`.  This column can be used to efficiently access each hash bucket.
@@ -116,7 +115,7 @@ SHOW CREATE mybigtable;
              | )
 ```
 
-With 9 `BUCKETS`, you can create 9 parallel threads to `DELETE` from each shard:
+With a `BUCKET_COUNT=9`, you can create 9 parallel threads to `DELETE` from each shard:
 
 **Thread 1:**
 ```sql
@@ -154,4 +153,4 @@ With 9 `BUCKETS`, you can create 9 parallel threads to `DELETE` from each shard:
 ```
 
 ## Conclusion
-Hopefully this was useful to give you some ideas on how to best `DELETE` data from CockroachDB.  Depending on your scenario, there are multiple paths to `DELETE` data with minimual impact.
+Hopefully this was useful to give you some ideas on how to best perform BULK DELETEs with CockroachDB.  Depending on your scenario, there are multiple paths to `DELETE` data with minimual impact.
