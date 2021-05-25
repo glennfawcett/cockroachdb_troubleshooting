@@ -1,12 +1,22 @@
-# Delete Batching
-Cockroach Database supports the serializable isolation level to ensure data correctness.  Since serializable is more strict, it can increase contention when running larger bulk data operations within the cluster. With serializable, the scope of each transaction needs to be minimized.  Indeed, if large operations are attempted, often they get aborted due to running out of memory or the inability to guarantee serializable isolation.  So, what can be done to resolve this situation?
+# Bulk Delete Troubleshooting
+Cockroach Database supports the serializable isolation level to ensure data correctness.  Since serializable is more strict, it can increase contention when running larger bulk data operations within the cluster. With serializable, the scope of each transaction needs to be minimized.  Indeed, if large operations are attempted, often they get aborted due to running out of memory or the inability to guarantee serializable isolation.  
 
-This comes into play when an application desires to archive old data.  If the application itself does not take care of this, then it is often up to the DB operations group to assist.  The data to be archived must have a clear access point typically by timestamp. 
+This typically happens when an application desires to archive old data.  If the application itself does not take care of this, then it is often up to the DB operations group to assist.  The data to be archived must have a clear access point typically by timestamp. 
+
+
+## Symptoms and Diagnosis
+Your bulk `DELETE` statements can fail for multiple reasons.
+* Run out of memory
+* Timeout
+
+This failures can be observed vai the CLI prompt and the `crdb.log` files.
+
+## Treatment
 
 The docs are pretty good with some examples of how this can be done with some examples written in Python.
 * [https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html](https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html)
 
-## Simple Delete script
+### Simple Delete script
 For an simple script that can be run with just from the shell via the cockroach CLI tool, consider the following:
 
 ```bash
@@ -23,7 +33,7 @@ do
 done
 ```
 
-## Simple Delete with Accounting
+### Simple Delete with Accounting
 If you want to better monitor progress, consider the following example which uses the returning clause with a CTE to track the progress of deletes from `mytable` into an account table `mytable_cnt`.
 
 ```bash
@@ -64,7 +74,7 @@ FROM mytable_cnt;
 This example can be reproduced with via the [delete_batch_with_accounting.sh](delete_batch_with_accounting.sh) script in my troubleshooting repository.
 
 
-## Multi Treaded Delete on Timestamp
+### Multi Treaded Delete on Timestamp
 To delete timeseries data in parallel, a `HASH` index is your best bet.  This example has a table with the `created_at` column which contains the timestamp used to show the age of data.  This example has a cluster with 9 nodes, so a `HASH INDEX` with 9 `BUCKETS` was created to match.
 
 ```sql

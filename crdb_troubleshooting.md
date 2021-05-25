@@ -21,4 +21,4 @@ The methology used will mirror what is done in the medical community.  When you 
 Consider this a living repository that provides treatments for common aliments seen by customers running CockroachDB.  Please contribute and suggest your troubleshooting experiences.
 
 * [Hot Single Range Queries](issues/hotrange/hot_singlerange_troubleshooting.md)
-* [Delete Batching](issues/delete_batching/delete_batching.md)
+* [Bulk Deletes](issues/bulk_delete/bulk_delete_troubleshooting.md)
