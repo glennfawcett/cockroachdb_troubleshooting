@@ -1,3 +1,4 @@
+# Delete Batching
 Cockroach Database supports the serializable isolation level to ensure data correctness.  Since serializable is more strict, it can increase contention when running larger bulk data operations within the cluster. With serializable, the scope of each transaction needs to be minimized.  Indeed, if large operations are attempted, often they get aborted due to running out of memory or the inability to guarantee serializable isolation.  So, what can be done to resolve this situation?
 
 This comes into play when an application desires to archive old data.  If the application itself does not take care of this, then it is often up to the DB operations group to assist.  The data to be archived must have a clear access point typically by timestamp. 
