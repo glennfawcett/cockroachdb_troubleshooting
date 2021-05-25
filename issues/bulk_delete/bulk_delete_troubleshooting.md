@@ -1,7 +1,7 @@
 # Bulk Delete Troubleshooting
 Cockroach Database supports the serializable isolation level to ensure data correctness.  Since serializable is more strict, it can increase contention when running larger bulk data operations within the cluster. With serializable, the scope of each transaction needs to be minimized.  Indeed, if large operations are attempted, often they get aborted due to running out of memory or the inability to guarantee serializable isolation.  
 
-This typically happens when an application desires to archive old data.  If the application itself does not take care of this, then it is often up to the DB operations group to assist.  The data to be archived must have a clear access point typically by timestamp. 
+This typically happens when an application desires to archive old data.  If the application itself does not take care of this, then it is often up to the DB operations group to assist.  The data to be archived must have a clean filter typically by timestamp. 
 
 
 ## Symptoms and Diagnosis
@@ -9,14 +9,16 @@ Your bulk `DELETE` statements can fail for multiple reasons.
 * Run out of memory
 * Timeout
 
-This failures can be observed vai the CLI prompt and the `crdb.log` files.
+These failures can be observed via the CLI prompt and the `crdb.log` files.
 
 ## Treatment
-
 The docs are pretty good with some examples of how this can be done with some examples written in Python.
 * [https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html](https://www.cockroachlabs.com/docs/v20.2/bulk-delete-data.html)
 
+For this blog entry, there are some simple examples of how to do this by a simple shell script.
+
 ### Simple Delete script
+
 For an simple script that can be run with just from the shell via the cockroach CLI tool, consider the following:
 
 ```bash
