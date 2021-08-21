@@ -22,3 +22,4 @@ Consider this a living repository that provides treatments for common aliments s
 
 * [Hot Single Range Queries](issues/hotrange/hot_singlerange_troubleshooting.md)
 * [Bulk Deletes](issues/bulk_delete/bulk_delete_troubleshooting.md)
+* [Bulk Move](issues/bulk_move/bulk_move_troubleshooting.md)
