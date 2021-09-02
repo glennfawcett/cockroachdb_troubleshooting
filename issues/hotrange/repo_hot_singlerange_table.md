@@ -8,7 +8,7 @@ Create a simple 5 node cluster in single range.  I am using a simple tool [roach
 **Cluster Creation:**
 ```bash
 roachprod create `whoami`-hotrange --gce-machine-type 'n1-standard-2' --nodes 5 --lifetime 24h
-roachprod stage `whoami`-hotrange release v20.2.3
+roachprod stage `whoami`-hotrange release v20.2.10
 roachprod start `whoami`-hotrange
 ```
 Record the *internal* ip addressed used to access the cluster from your VPN.  This will be used below to configure HAproxy to load balance connections in the cluster.
@@ -27,7 +27,7 @@ The following driver machine is used to drive load across all 3 target nodes in 
 ## Create Driver VM
 ##
 roachprod create `whoami`-drive --gce-machine-type 'n1-standard-2' --nodes 1 --lifetime 24h
-roachprod stage `whoami`-drive release v20.2.3  
+roachprod stage `whoami`-drive release v20.2.10 
 
 ## Configure Driver VM to drive load
 ##
@@ -47,7 +47,7 @@ sudo apt-get install haproxy -y
 ## Replace 99.99.99.99 IP address from one of the cluster nodes
 ##
 # cockroach gen haproxy --insecure   --host=99.99.99.99   --port=26257 
-cockroach gen haproxy --insecure   --host=10.142.0.59   --port=26257 
+cockroach gen haproxy --insecure   --host=10.142.0.26   --port=26257 
 nohup haproxy -f haproxy.cfg &
 
 ```
@@ -69,11 +69,11 @@ USE test;
 
 CREATE TABLE hotsingle (
     id INT PRIMARY KEY,
-    s1 string NOT NULL DEFAULT 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    s2 string NOT NULL DEFAULT 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    s1 string NOT NULL DEFAULT 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    s2 string NOT NULL DEFAULT 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
     s3 string NOT NULL DEFAULT lpad('',64,'{'),
-    s4 string NOT NULL DEFAULT 'dddddddddddddddddddddddddddddddddddddddddddddddddddd',
-    s5 string NOT NULL DEFAULT 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+    s4 string NOT NULL DEFAULT 'ddddddddddddddddddddddddddddddddddddddddddddddddd',
+    s5 string NOT NULL DEFAULT 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
 );
 
 INSERT INTO hotsingle (id)

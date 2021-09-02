@@ -13,7 +13,7 @@ select /*q1 follower */ count(*), concat(s1,s2,s3,s4,s5) from as of system time 
 EOF
 ```
 
-Monitor the workload from the DB Console to see QPS and CPU actvity as you run the following tests.
+Monitor the workload from the DB Console to see QPS and CPU activity as you run the following tests.  If you don't yet have the `workload` tool, the [repo_hot_singlerange_table.md](repo_hot_singlerange_table.md) writeup shows how to download.
 
 **Run without follower reads:**
 ```bash
