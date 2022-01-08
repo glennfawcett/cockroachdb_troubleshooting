@@ -85,7 +85,11 @@ def jsonKVrand(numberOfPairs, randomRange):
     bigfastvals = bigfastvals + "'{"
 
     for i in range(numberOfPairs):
-        bigfastvals = bigfastvals + '"k' + str(random.randint(1, randomRange)) + '":"' + str(random.randint(1, randomRange)) + '"'
+        if(random.random() < 0.00001):
+            rval = str(999999)
+        else:  
+            rval = str(random.randint(1, randomRange))
+        bigfastvals = bigfastvals + '"k' + str(i) + '":"' + rval + '"'
         if (i != numberOfPairs - 1):
             bigfastvals = bigfastvals + ','
 
@@ -93,8 +97,11 @@ def jsonKVrand(numberOfPairs, randomRange):
     
     return bigfastvals
 
-def crJSONrowVals(numOfValues, numberOfPairs, randomRange): 
-    ## Create Value string for insert
+def qj1(jTable, numOfValues, numberOfPairs, randomRange):
+    qTemplate = """
+    INSERT INTO {} (id, ts0, k1, k2, k3, k4, k5, v1, v2, v3, v4, v5, j) 
+    VALUES {}
+    """
     vstring = ''
     for i in range(numOfValues): 
         vstring = vstring + "("
@@ -114,23 +121,60 @@ def crJSONrowVals(numOfValues, numberOfPairs, randomRange):
         vstring = vstring + ")"
         if i != (numOfValues-1):
             vstring = vstring + ','
+
+    return (qTemplate.format(jTable, vstring))
+
+def crRecordTables(myconn, reset):
+    """Create Tables to Record test runs"""
+    if reset:
+        onestmt(myconn, "DROP TABLE IF EXISTS _testruns;")
+        onestmt(myconn, "DROP SEQUENCE IF EXISTS runseq;")
+
+    onestmt(myconn, "CREATE SEQUENCE IF NOT EXISTS runseq START WITH 1 INCREMENT BY 1;")
     
-    return vstring
-
-def qj1(jTable, numOfValues, numberOfPairs, randomRange):
-    qTemplate = """
-    INSERT INTO {} (id, ts0, k1, k2, k3, k4, k5, v1, v2, v3, v4, v5, j) 
-    VALUES {}
+    testRunDDL = """
+    CREATE TABLE IF NOT EXISTS _testruns (
+        id INT PRIMARY KEY DEFAULT nextval('runseq'),
+        tablename STRING NOT NULL,
+        numthreads INT NOT NULL,
+        batchsize INT NOT NULL,
+        insertspersec FLOAT as (if(end_ts IS NOT NULL,(rowsinserted)::FLOAT/extract(epoch from (end_ts - start_ts)), 0.0)) STORED,
+        p90ms DECIMAL,
+        rowsinserted INT,
+        description STRING,
+        start_ts TIMESTAMPTZ DEFAULT now(),
+        end_ts TIMESTAMPTZ
+    );
     """
-    # print("{}".format(qTemplate.format(bigfastvals)))
-    return (qTemplate.format(jTable, crJSONrowVals(numOfValues, numberOfPairs, randomRange)))
+    onestmt(myconn, testRunDDL)
+    return
 
+def crTestRun(myconn, description, tablename, numthreads, batchsize): 
+    insRec = """
+    INSERT INTO _testruns(description, tablename, numthreads, batchsize)
+    VALUES ('{}', '{}', {}, {})
+    RETURNING (id)
+    """
+    with myconn:
+        with myconn.cursor() as cur:
+            cur.execute(insRec.format(description, tablename, numthreads, batchsize))
+            rows = cur.fetchall()
+    return rows[0][0]
+
+def updateTestRun(myconn, rid, rowsinserted, p90ms): 
+    updateSQL = """
+    UPDATE _testruns
+    SET rowsinserted = {}, 
+        p90ms = {},
+        end_ts = now()
+    WHERE id = {}
+    """
+    onestmt(myconn, updateSQL.format(rowsinserted, p90ms, rid))
+    return
 
 def worker_steady(num, tpsPerThread, dbstr, runtime, qFunc, jtable, valsPerJSON, distIntPerVal, vsize):
     """ingest worker:: Lookup valid session and then account"""
     print("Worker Steady State")
-    valsPerJSON = 10
-    distIntPerVal = 10000
 
     #mycon = getcon(dbstr)
     mycon = psycopg2.connect(connStr)
@@ -157,9 +201,10 @@ def worker_steady(num, tpsPerThread, dbstr, runtime, qFunc, jtable, valsPerJSON,
                 # begin time
                 btime = time.time()
 
+                # print(qj1(jtable, valsPerJSON, vsize, distIntPerVal))
+                # exit()
                 # Run the query from qFunc
-                # cur.execute(qFunc(varray)+";\n"+qFunc(varray)+";")
-                cur.execute(qFunc(jtable, valsPerJSON, distIntPerVal, vsize))
+                cur.execute(qFunc(jtable, valsPerJSON, vsize, distIntPerVal))
                 execute_count += 1
 
                 etime = time.time()
@@ -216,7 +261,8 @@ CREATE TABLE IF NOT EXISTS jtable_inverted (
     v3 INT,
     v4 INT,
     v5 INT,
-    j JSON
+    j JSON,
+    INVERTED INDEX inv_j (j)
 )
 """
 
@@ -234,48 +280,81 @@ CREATE TABLE IF NOT EXISTS jtable_storing (
     v3 INT,
     v4 INT,
     v5 INT,
-    j JSON
+    j JSON,
+    jk0 INT8 NULL AS (CAST(j->>'k0':::STRING AS INT8)) STORED,
+    jk1 INT8 NULL AS (CAST(j->>'k1':::STRING AS INT8)) STORED,
+    jk2 INT8 NULL AS (CAST(j->>'k2':::STRING AS INT8)) STORED,
+    jk3 INT8 NULL AS (CAST(j->>'k3':::STRING AS INT8)) STORED,
+    jk4 INT8 NULL AS (CAST(j->>'k4':::STRING AS INT8)) STORED,
+    INDEX idx_jk0 (jk0 ASC), 
+    INDEX idx_jk1 (jk1 ASC), 
+    INDEX idx_jk2 (jk2 ASC), 
+    INDEX idx_jk3 (jk3 ASC), 
+    INDEX idx_jk4 (jk4 ASC) 
 );
 """
 
-mycon = psycopg2.connect(connStr)
-onestmt(mycon, crBase)
-onestmt(mycon, crInverted)
-onestmt(mycon, crStoring)
+# print(jsonKVrand(10,100000))
+# exit()
 
-
-
-# Misc Values
-valsPerJSON = 10
-distIntPerVal = 10000
-
-
-# Runtime Per Table
-runtime = 10
-QPS = 0
+# Rebuild Settings
+rebuildTables = False
+resetTests = False
 
 # Define Tables to Test
 tables = ['jtable_base', 'jtable_inverted', 'jtable_storing']
 
+mycon = psycopg2.connect(connStr)
+
+# Drop Existing Tables
+if rebuildTables:
+    for t in tables:
+        onestmt(mycon, "DROP TABLE IF EXISTS {};".format(t))
+
+# Create Tables 
+onestmt(mycon, crBase)
+onestmt(mycon, crInverted)
+onestmt(mycon, crStoring)
+
+# Presplit Tables
+if rebuildTables:
+    for t in tables:
+        onestmt(mycon, "ALTER TABLE {} SPLIT AT select gen_random_uuid() from generate_series(1,18);".format(t))
+
+# Create Tables To Record Runs... if resetTests is TRUE it drops and recreates the table
+crRecordTables(mycon, resetTests)
+mycon.close()
+
+# JSON size and Distribution of values
+valsPerJSON = 10
+distIntPerVal = 10000
+
+# Runtime Per Table
+runtime = 300
+QPS = 61
+
 # Define batch size tests
-batchSize = [1, 2, 4, 6, 8, 10]
+batchSize = [50]
 
 # Number of Threads
-threadsToRun = [1, 2]
+threadsToRun = [9]
 
 for tab in tables:
     print ("Inserting to table: {}".format(tab))
 
-    for numThreads in batchSize:
+    for numThreads in threadsToRun:
         print("Threads : {}".format(numThreads))
         qpsPerThread = QPS/numThreads
 
         for currentBatchSize in batchSize:
             print ("Insert BatchSize: {}".format(currentBatchSize))
+            mycon = psycopg2.connect(connStr)
+            runid = crTestRun(mycon, "JSON_9threads_60qps_50batch", tab, numThreads, currentBatchSize)
+            mycon.close()
 
             threads1 = []
             for i in range(numThreads):
-                t1 = ThreadWithReturnValue(target=worker_steady, args=((i+1), qpsPerThread, connStr, runtime, qj1, tab, valsPerJSON, distIntPerVal, currentBatchSize))
+                t1 = ThreadWithReturnValue(target=worker_steady, args=((i+1), qpsPerThread, connStr, runtime, qj1, tab, currentBatchSize, distIntPerVal, valsPerJSON))
                 threads1.append(t1)
                 t1.start()
 
@@ -289,13 +368,11 @@ for tab in tables:
                 tq1 = tq1 + qc
                 tq1resp.extend(ra)
 
-            print("{} Total Inserts : {}".format(tab, tq1*currentBatchSize))
-            print("{} Total Threads : {}".format(tab, numThreads))
-            print("{} BatchSize : {}".format(tab, currentBatchSize))        
-            print("{} InsertsPerSecond : {}".format(tab, tq1*currentBatchSize/runtime))
-            print("{} respP90 : {}".format(tab, numpy.percentile(tq1resp,90)))
+            print("{} : Threads {} : BatchSize {} : InsertsPerSecond {} respP90 : {}".format(tab, numThreads, currentBatchSize, tq1*currentBatchSize/runtime, numpy.percentile(tq1resp,90)))
+            mycon = psycopg2.connect(connStr)
+            updateTestRun(mycon, runid, tq1*currentBatchSize, numpy.percentile(tq1resp,90))
+            mycon.close()
 
-            time.sleep(1)
+            time.sleep(90)
 
 exit()
-
