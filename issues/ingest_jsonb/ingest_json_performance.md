@@ -1,32 +1,32 @@
 # INSERT Performance with JSONB and Indexes
 
-Recently, I was working with a customer trying to optimize performance when ingesting JSONB data.  The table that contains the JSON data needed to be queried based on values in the JSON column.  CockroachDB has the abilitiy to use [inverted](https://www.cockroachlabs.com/docs/stable/inverted-indexes.html) indexes to query based on fields in the JSON.  
+Recently, I was working with a customer to optimize performance when ingesting JSONB data.  The table containing JSON data needed to be queried based on values in the JSON column.  CockroachDB has the ability to use [inverted](https://www.cockroachlabs.com/docs/stable/inverted-indexes.html) indexes to query based on JSON predicates.  
 
-While inverted indexes work great for _unknown_ JSON fields, you can get better performance using [computed](https://www.cockroachlabs.com/docs/stable/jsonb.html#create-a-table-with-a-jsonb-column-and-a-computed-column) columns and creating a traditional index on the computed column. Previously, I wrote a blog regarding [demystifiying](https://glennfawcett.wpcomstaging.com/2020/02/11/demystifying-json-with-cockroachdb-import-index-and-computed-columns/) JSON performance from a query point of view that has details on the performance gains possible.
+While inverted indexes work great for _unknown_ JSON fields, better performance can be obtained using [computed](https://www.cockroachlabs.com/docs/stable/jsonb.html#create-a-table-with-a-jsonb-column-and-a-computed-column) columns and creating a traditional index on the computed column. Previously, I wrote a blog regarding [demystifiying](https://glennfawcett.wpcomstaging.com/2020/02/11/demystifying-json-with-cockroachdb-import-index-and-computed-columns/) JSON performance from a query point of view that has details on the performance gains possible.
 
-Regardless, the performance of `INSERT` was to tables with JSONB and `INVERTED` indexes needed to be characterized to size the system for the desired rate.
+Regardless, the performance of `INSERT` to tables with JSONB and `INVERTED` indexes needed to be sized for the system for a desired ingest rate.
 
 ## Results Highlights
 
 I created three versions of the table with the following attributes:
 
-- Baseline with no secondary indexes
-- Table with one secondary `INVERTED` index on JSON column
-- Table with 5 standard indexes on computed columns of the JSON values
+- Baseline :: Table with no secondary indexes
+- Inverted index :: Table with one secondary `INVERTED` index on JSON column
+- Computed /w 5 standard :: Table with 5 standard indexes on computed columns of the JSON values
 
-As you can see all three of these tables was able to keep up with the desired `INSERT` rate of 60 QPS.
+As you can see all three of these tables were able to keep up with the desired `INSERT` rate of 60 QPS.
 
 ![](images/QPS_JSON_ingest_2021_10_27.png)
 
-By looking at CPU, you can see that some methods are more expensive in terms of resources.
+By looking at CPU, some methods are more expensive in terms of resources.
 
 ![](images/CPU_JSON_ingest_2021_10_27.png)
 
-So, as with any indexing scheme, there is an accociated cost that must be paid up-front in-order to achive the best performance during retrivial.  Notice that even with 5 indexes on computed columns it is not as expensive as indexing the entire JSON.  This is good news as the ingest and retreival cost is much less using this method for _known_ values in the JSON.
+With any indexing scheme there is an associated cost that must be paid up-front in-order to achieve the best performance during retrieval.  Notice that even with 5 indexes on computed columns it is not as expensive as indexing the entire JSON.  This is good news as the ingest and retrieval cost is less using this method for _known_ values in the JSON.
 
 ## Test Details
 
-The test table and [ingest_json.py](ingest_json.py) script are described below.  This script creates an string of values to be inserted by the script.  The JSON object is created with 10 embedded variables `k0 -> k9`.  For the test with the computed columns, 5 of these values are indexed.
+The test table and [ingest_json.py](ingest_json.py) script are described below.  This script creates a string of values to be inserted.  The JSON object is created with 10 embedded variables `k0 -> k9`.  For the test with the computed columns, 5 of these values are indexed.
 
 Please feel free to experiment with this in your environment and adjust as needed.
 
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS jtable_storing (
 
 ### Python Script
 
-I modified a template that I have been using for running these sort of tests to create the [ingest_json.py](ingest_json.py) program.  This code basically creates the tables in question and records the results of each run in the `_testruns` table.
+I modified a template that I have been using for running these sorts of tests to create the [ingest_json.py](ingest_json.py) program.  This code basically creates the tables in question and records the results of each run in the `_testruns` table.
 
 ```sql
     CREATE TABLE IF NOT EXISTS _testruns (
