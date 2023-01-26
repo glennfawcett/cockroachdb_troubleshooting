@@ -70,3 +70,10 @@ select count(*) from int_pkhash where id BETWEEN 500 and 2000 and crdb_internal_
 union all
 select count(*) from int_pkhash where id BETWEEN 500 and 2000 and crdb_internal_id_shard_8=7
 );
+
+SELECT m100, count(*), sum(v100), min(ts), max(ts)
+FROM measure
+WHERE ts BETWEEN '2001-01-01' and '2021-01-02'
+GROUP BY m100
+ORDER BY 3 desc
+LIMIT 10
